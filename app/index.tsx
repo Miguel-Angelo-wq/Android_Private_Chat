@@ -1,8 +1,10 @@
 import {
   fromServiceBrowserEvent,
+  MessagingServer,
   ServiceBrowser,
   ServiceBrowserEventName,
   ServiceBrowserServiceFoundNativeEvent,
+  ServiceBrowserServiceLostNativeEvent,
 } from "@figuredev/react-native-local-server";
 import { useEffect, useRef, useState } from "react";
 import { AppRegistry, Text } from "react-native";
@@ -15,26 +17,49 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { expo } from "../app.json";
 import Zeroconf from "react-native-zeroconf";
+import DeviceInfo from "react-native-device-info";
 
 export default function Index() {
-  const service = useRef<Zeroconf>(new Zeroconf());
-  const browser = useRef<ServiceBrowser>(new ServiceBrowser("Felipe"));
+  const server = new MessagingServer(DeviceInfo.getDeviceId());
+  // const service = useRef<Zeroconf>(new Zeroconf());
+  // const browser = useRef<ServiceBrowser>(
+  //   new ServiceBrowser(DeviceInfo.getDeviceId())
+  // );
 
   useEffect(() => {
-    service.current.publishService(
-      "private-chat",
-      "tcp",
-      "local.",
-      "sla que porra",
-      4000
+    // service.current.publishService(
+    //   "private-chat",
+    //   "tcp",
+    //   "local.",
+    //   "sla que porra",
+    //   4000
+    // );
+    // browser.current.start({ type: "_private-chat._tcp" });
+
+    server.start(
+      {
+        service: { name: "_private-chat._tcp", id: DeviceInfo.getDeviceId() },
+        name: DeviceInfo.getBaseOsSync() + DeviceInfo.getDeviceNameSync(),
+        port: 4000,
+        discovery: {
+          group: "group",
+          name: "name",
+        },
+      },
+      (message) => message,
+      undefined
     );
-    browser.current.start({ type: "_private-chat._tcp" });
   }, []);
 
-  fromServiceBrowserEvent(
-    "Felipe",
-    ServiceBrowserEventName.ServiceFound
-  ).subscribe(addService);
+  // fromServiceBrowserEvent(
+  //   "Felipe",
+  //   ServiceBrowserEventName.ServiceFound
+  // ).subscribe(addService);
+
+  // fromServiceBrowserEvent(
+  //   "Felipe",
+  //   ServiceBrowserEventName.ServiceLost
+  // ).subscribe(removeService);
 
   const [serviceList, setServiceList] = useState<
     ServiceBrowserServiceFoundNativeEvent[]
@@ -43,6 +68,13 @@ export default function Index() {
   function addService(event: ServiceBrowserServiceFoundNativeEvent) {
     const newList = serviceList.concat([event]);
     setServiceList(newList);
+  }
+
+  function removeService(event: ServiceBrowserServiceLostNativeEvent) {
+    const index = serviceList.findIndex(
+      (service) => service.host === event.host
+    );
+    setServiceList(serviceList.toSpliced(index, 1));
   }
 
   return (
