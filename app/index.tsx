@@ -13,6 +13,7 @@ import { MD3LightTheme, PaperProvider, Surface } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { expo } from "../app.json";
 import _ from "lodash";
+import { Link } from "expo-router";
 
 export default function Index() {
   const [serviceList, setServiceList] = useState<
@@ -70,7 +71,7 @@ export default function Index() {
             elevation={4}
             key={service.name}
           >
-            <Text>{service.name}</Text>
+            <Link href="/chat">{service.name}</Link>
           </Surface>
         ))}
       </SafeAreaView>
