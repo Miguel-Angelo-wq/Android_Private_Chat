@@ -1,46 +1,23 @@
 import {
-  MessagingClient,
   MessagingClientServiceSearchResult,
   MessagingClientServiceSearchUpdate,
-  MessagingServer,
-  ServiceBrowserServiceFoundNativeEvent,
-  ServiceBrowserServiceLostNativeEvent,
 } from "@figuredev/react-native-local-server";
-import { useEffect, useState } from "react";
-import { AppRegistry, Text } from "react-native";
+import { Link } from "expo-router";
+import _ from "lodash";
+import { useContext, useEffect, useState } from "react";
+import { AppRegistry } from "react-native";
 import DeviceInfo from "react-native-device-info";
 import { MD3LightTheme, PaperProvider, Surface } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { expo } from "../app.json";
-import _ from "lodash";
-import { Link } from "expo-router";
+import { MessagingContext } from "./_layout";
 
 export default function Index() {
   const [serviceList, setServiceList] = useState<
     MessagingClientServiceSearchResult[]
   >([]);
 
-  const server = new MessagingServer(DeviceInfo.getDeviceId());
-  const client = new MessagingClient(DeviceInfo.getDeviceId(), "private-chat");
-  useEffect(() => {
-    client.startServiceSearch().subscribe();
-
-    server
-      .start(
-        {
-          service: { name: "private-chat", id: DeviceInfo.getDeviceId() },
-          name: DeviceInfo.getBaseOsSync() + DeviceInfo.getDeviceNameSync(),
-          port: 4000,
-          discovery: {
-            group: "private-chat",
-            name: DeviceInfo.getBaseOsSync() + DeviceInfo.getDeviceNameSync(),
-          },
-        },
-        (message) => message,
-        undefined
-      )
-      .subscribe();
-  }, []);
+  const { server, client } = useContext(MessagingContext) ?? {};
 
   client.getSearchUpdate$().subscribe(({ update }) => {
     const newList =
