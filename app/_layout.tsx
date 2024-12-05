@@ -1,42 +1,43 @@
 import { Buffer } from "buffer";
 import "react-native-get-random-values";
 
-import { createContext, useEffect, useState } from "react";
+import React, { createContext, useEffect, useRef, useState } from "react";
 
 import { Stack } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-
-import {
-  MessagingClient,
-  MessagingServer,
-} from "@figuredev/react-native-local-server";
 import DeviceInfo from "react-native-device-info";
 
+import { TCPClient, TCPServer } from "@figuredev/react-native-local-server";
+
 import nacl from "tweetnacl";
+import Zeroconf from "react-native-zeroconf";
 
 type Provides = {
-  server?: MessagingServer<unknown, unknown, any, any>;
-  client?: MessagingClient<unknown, unknown, any, any>;
+  server: TCPServer;
+  client: TCPClient;
+  zeroconf?: React.MutableRefObject<Zeroconf>;
   signature?: {
     publicKey: string;
     privateKey: string;
+    fingerprint: string;
   };
-  startMessenger: () => void;
-  stopMessenger: () => void;
 };
 
 export const MessagingContext = createContext<Provides>({
-  server: new MessagingServer(DeviceInfo.getDeviceId()),
-  client: new MessagingClient(DeviceInfo.getDeviceId(), "private-chat"),
-  startMessenger: () => {},
-  stopMessenger: () => {},
+  server: new TCPServer(DeviceInfo.getDeviceId()),
+  client: new TCPClient(DeviceInfo.getDeviceId()),
 });
 
 export default function RootLayout() {
   const [signature, setSignature] = useState<Provides["signature"]>();
 
-  const [client, setClient] = useState<Provides["client"]>();
-  const [server, setServer] = useState<Provides["server"]>();
+  const [client, setClient] = useState<Provides["client"]>(
+    new TCPClient(DeviceInfo.getDeviceId())
+  );
+  const [server, setServer] = useState<Provides["server"]>(
+    new TCPServer(DeviceInfo.getDeviceId())
+  );
+  const zeroconf = useRef(new Zeroconf());
 
   useEffect(() => {
     const initSignature = async () => {
@@ -54,7 +55,11 @@ export default function RootLayout() {
           const publicKey = Buffer.from(keyPair.publicKey).toString("hex");
           const privateKey = Buffer.from(keyPair.secretKey).toString("hex");
 
-          const newSignature = { publicKey, privateKey };
+          const fingerprint = Buffer.from(
+            nacl.hash(keyPair.publicKey)
+          ).toString("hex");
+
+          const newSignature = { publicKey, privateKey, fingerprint };
 
           setSignature(newSignature);
 
@@ -69,66 +74,21 @@ export default function RootLayout() {
       }
     };
 
-    const initMessenger = () => {
-      if (server == null) {
-        setServer(new MessagingServer(DeviceInfo.getDeviceId()));
-      }
-
-      if (client == null) {
-        setClient(
-          new MessagingClient(DeviceInfo.getDeviceId(), "private-chat")
-        );
-      }
-    };
-
     const closeMessenger = () => {
       server?.stop();
       client?.stop();
-
-      setServer(undefined);
-      setClient(undefined);
     };
 
     initSignature().then(() => console.log("Key Signature initialized!"));
-    initMessenger();
 
     return () => {
       closeMessenger();
     };
   }, []);
 
-  function startMessenger() {
-    if (server) {
-      server.start(
-        {
-          service: { name: "private-chat", id: DeviceInfo.getDeviceId() },
-          name: DeviceInfo.getBaseOsSync() + DeviceInfo.getDeviceNameSync(),
-          port: 4000,
-          discovery: {
-            group: "private-chat",
-            name: DeviceInfo.getBaseOsSync() + DeviceInfo.getDeviceNameSync(),
-          },
-        },
-        (message) => message,
-        undefined
-      );
-    }
-
-    if (client) {
-      client.startServiceSearch().subscribe();
-    }
-  }
-
-  function stopMessenger() {
-    server?.stop();
-    client?.stop();
-  }
-
   return (
-    <MessagingContext.Provider
-      value={{ server, client, signature, startMessenger, stopMessenger }}
-    >
-      <Stack />
+    <MessagingContext.Provider value={{ server, client, signature, zeroconf }}>
+      <Stack screenOptions={{ headerShown: false }} />
     </MessagingContext.Provider>
   );
 }

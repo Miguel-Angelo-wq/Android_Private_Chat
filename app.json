@@ -34,7 +34,14 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "react-native-vision-camera",
+        {
+          "enableCodeScanner": true,
+          "cameraPermissionText": "$(PRODUCT_NAME) needs access to your Camera."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
