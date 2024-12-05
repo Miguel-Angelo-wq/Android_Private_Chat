@@ -1,22 +1,22 @@
+import { MessagingContext } from "@/app/_layout";
 import { useLocalSearchParams } from "expo-router";
-import { useEffect } from "react";
+import { useContext, useEffect } from "react";
 import { MD3LightTheme, PaperProvider, Text } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-type Props = {
-  route: {
-    params: {
-      ip: string;
-      host: string;
-      name: string;
-    };
-  };
-};
+export default function Index() {
+  const params = useLocalSearchParams();
 
-export default function Index({ route }: Props) {
-  const params = route.params;
+  const { client, server } = useContext(MessagingContext) ?? {};
+
   useEffect(() => {
-    console.log(params);
+    client.start({
+      connection: {
+        host: Array.isArray(params.ip) ? params.ip[0] : params.ip,
+        name: Array.isArray(params.name) ? params.name[0] : params.name,
+        port: Array.isArray(params.port) ? +params.port[0] : +params.port,
+      },
+    });
   }, []);
   return (
     <PaperProvider theme={MD3LightTheme}>

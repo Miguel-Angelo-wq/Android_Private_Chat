@@ -1,9 +1,10 @@
 import { Buffer } from "buffer";
 
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useEffect } from "react";
 import { StyleSheet } from "react-native";
 import { MD3LightTheme, PaperProvider, Text } from "react-native-paper";
+import * as SecureStore from "expo-secure-store";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Camera,
@@ -19,7 +20,23 @@ export default function Index() {
 
   const params = useLocalSearchParams();
 
-  function addTrustedDevice(publicKey: string, fingerprint: string) {}
+  async function addTrustedDevice(
+    publicKey: string,
+    fingerprint: string,
+    name: string
+  ) {
+    await SecureStore.setItemAsync(
+      `contact_${name}`,
+      JSON.stringify({
+        publicKey,
+        fingerprint,
+        name,
+        trustedSince: Date(),
+      })
+    );
+    console.log("Saved!");
+    router.back();
+  }
 
   const codeScanner = useCodeScanner({
     codeTypes: ["qr"],
@@ -28,13 +45,16 @@ export default function Index() {
         const [code] = codes;
         if (code.value != null) {
           const key = Array.isArray(params.key) ? params.key[0] : params.key;
+          const name = Array.isArray(params.name)
+            ? params.name[0]
+            : params.name;
 
           const fingerprint = Buffer.from(
             nacl.hash(Buffer.from(key, "hex"))
           ).toString("hex");
 
           if (code.value === fingerprint) {
-            // ADD Trusted device
+            addTrustedDevice(key, fingerprint, name);
           } else {
             // TODO
           }
