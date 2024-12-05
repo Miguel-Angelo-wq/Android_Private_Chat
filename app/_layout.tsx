@@ -1,5 +1,5 @@
-import "react-native-get-random-values";
 import { Buffer } from "buffer";
+import "react-native-get-random-values";
 
 import { createContext, useEffect, useState } from "react";
 
@@ -21,11 +21,15 @@ type Provides = {
     publicKey: string;
     privateKey: string;
   };
+  startMessenger: () => void;
+  stopMessenger: () => void;
 };
 
 export const MessagingContext = createContext<Provides>({
   server: new MessagingServer(DeviceInfo.getDeviceId()),
   client: new MessagingClient(DeviceInfo.getDeviceId(), "private-chat"),
+  startMessenger: () => {},
+  stopMessenger: () => {},
 });
 
 export default function RootLayout() {

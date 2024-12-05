@@ -11,6 +11,7 @@ import { MD3LightTheme, PaperProvider, Surface } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { expo } from "../app.json";
 import { MessagingContext } from "./_layout";
+import { Subscription } from "rxjs";
 
 export default function Index() {
   const [serviceList, setServiceList] = useState<
@@ -19,16 +20,35 @@ export default function Index() {
 
   const { server, client } = useContext(MessagingContext) ?? {};
 
-  client.getSearchUpdate$().subscribe(({ update }) => {
-    const newList =
-      update.type === MessagingClientServiceSearchUpdate.ServiceFound
-        ? serviceList.concat([update.service])
-        : update.type === MessagingClientServiceSearchUpdate.ServiceLost
-        ? _.differenceWith(serviceList, [update.service], _.isEqual)
-        : [];
+  const [searchSubscription, setSearchSubscription] =
+    useState<Subscription | null>(null);
 
-    setServiceList(newList);
-  });
+  useEffect(() => {
+    if (client != null) {
+      const subscription = client.getSearchUpdate$().subscribe(({ update }) => {
+        const newList =
+          update.type === MessagingClientServiceSearchUpdate.ServiceFound
+            ? serviceList.concat([update.service])
+            : update.type === MessagingClientServiceSearchUpdate.ServiceLost
+            ? _.differenceWith(serviceList, [update.service], _.isEqual)
+            : [];
+
+        setServiceList(newList);
+      });
+
+      // @ts-ignore
+      setSearchSubscription(subscription);
+    }
+
+    if (server != null) {
+      // Todo
+    }
+
+    return () => {
+      searchSubscription?.unsubscribe();
+      setSearchSubscription(null);
+    };
+  }, [server, client]);
 
   return (
     <PaperProvider theme={MD3LightTheme}>
