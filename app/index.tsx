@@ -21,7 +21,7 @@ import { expo } from "../app.json";
 import { MessagingContext } from "./_layout";
 
 export default function Index() {
-  const { zeroconf, signature } = useContext(MessagingContext) ?? {};
+  const { zeroconf, signature, server } = useContext(MessagingContext) ?? {};
 
   const [isDiscoverable, setIsDiscoverable] = useState<boolean>(false);
   const [serviceList, setServiceList] = useState<Record<string, Service>>({});
@@ -82,6 +82,7 @@ export default function Index() {
   }, [serviceList]);
 
   useEffect(() => {
+    server.start({ port: 4000 });
     zeroconf!.current.scan("private-chat", "tcp", "local.");
 
     zeroconf!.current.on("resolved", onServicesChange);
@@ -89,6 +90,7 @@ export default function Index() {
     zeroconf!.current.on("remove", onServicesChange);
 
     return () => {
+      server.stop("Left application");
       zeroconf!.current.removeDeviceListeners();
       zeroconf!.current.stop();
       zeroconf!.current.unpublishService(DeviceInfo.getDeviceId());
